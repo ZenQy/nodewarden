@@ -1,5 +1,5 @@
+import { useEffect, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
-import { Check, X } from 'lucide-preact';
 import { t } from '@/lib/i18n';
 
 interface ConfirmDialogProps {
@@ -10,6 +10,9 @@ interface ConfirmDialogProps {
   confirmText?: string;
   cancelText?: string;
   danger?: boolean;
+  hideCancel?: boolean;
+  confirmDisabled?: boolean;
+  cancelDisabled?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
   children?: ComponentChildren;
@@ -17,27 +20,60 @@ interface ConfirmDialogProps {
 }
 
 export default function ConfirmDialog(props: ConfirmDialogProps) {
-  if (!props.open) return null;
+  const [present, setPresent] = useState(props.open);
+  const [closing, setClosing] = useState(false);
+
+  useEffect(() => {
+    if (props.open) {
+      setPresent(true);
+      setClosing(false);
+      return;
+    }
+    if (!present) return;
+    setClosing(true);
+    const timer = window.setTimeout(() => {
+      setPresent(false);
+      setClosing(false);
+    }, 240);
+    return () => window.clearTimeout(timer);
+  }, [props.open, present]);
+
+  if (!present) return null;
   return (
-    <div className="dialog-mask">
-      <div className="dialog-card">
+    <div className={`dialog-mask ${props.open && !closing ? 'open' : ''} ${closing ? 'closing' : ''}`}>
+      <form
+        className={`dialog-card ${props.open && !closing ? 'open' : ''} ${closing ? 'closing' : ''}`}
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (props.confirmDisabled || closing) return;
+          props.onConfirm();
+        }}
+      >
         <h3 className="dialog-title">{props.title}</h3>
         <div className="dialog-message">{props.message}</div>
         {props.children}
         <button
-          type="button"
+          type="submit"
           className={`btn ${props.danger ? 'btn-danger' : 'btn-primary'} dialog-btn`}
-          onClick={props.onConfirm}
+          disabled={props.confirmDisabled}
         >
-          <Check size={14} className="btn-icon" />
           {props.confirmText || t('txt_yes')}
         </button>
-        <button type="button" className="btn btn-secondary dialog-btn" onClick={props.onCancel}>
-          <X size={14} className="btn-icon" />
-          {props.cancelText || t('txt_no')}
-        </button>
+        {!props.hideCancel && (
+          <button
+            type="button"
+            className="btn btn-secondary dialog-btn"
+            disabled={props.cancelDisabled}
+            onClick={() => {
+              if (props.cancelDisabled) return;
+              props.onCancel();
+            }}
+          >
+            {props.cancelText || t('txt_no')}
+          </button>
+        )}
         {props.afterActions}
-      </div>
+      </form>
     </div>
   );
 }
