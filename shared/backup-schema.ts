@@ -1,3 +1,11 @@
+// Shared backup settings types used by both Worker and webapp code.
+//
+// CONTRACT:
+// Keep this file serializable and provider-neutral. Runtime state is operational
+// metadata; destination fields can contain provider credentials and must be
+// encrypted by src/services/backup-settings-crypto.ts before storage/export.
+// User-facing provider names should use canonical values here. Legacy aliases
+// belong in backend normalization, not in this shared type.
 export const BACKUP_DEFAULT_TIMEZONE = 'UTC';
 export const BACKUP_DEFAULT_RETENTION_COUNT = 30;
 export const BACKUP_DEFAULT_S3_REGION = 'auto';
@@ -6,10 +14,12 @@ export const BACKUP_DEFAULT_INTERVAL_HOURS = 24;
 export const BACKUP_DEFAULT_START_TIME = '03:00';
 
 export type BackupDestinationType = 's3' | 'webdav';
+export type S3BackupAddressingStyle = 'path-style' | 'virtual-hosted-style';
 
 export interface S3BackupDestination {
   endpoint: string;
   bucket: string;
+  addressingStyle: S3BackupAddressingStyle;
   region: string;
   accessKeyId: string;
   secretAccessKey: string;
@@ -95,6 +105,7 @@ export function createDefaultBackupDestinationConfig(type: BackupDestinationType
     return {
       endpoint: '',
       bucket: '',
+      addressingStyle: 'path-style',
       region: BACKUP_DEFAULT_S3_REGION,
       accessKeyId: '',
       secretAccessKey: '',
